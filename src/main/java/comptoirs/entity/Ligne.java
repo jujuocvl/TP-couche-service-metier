@@ -31,7 +31,7 @@ public class Ligne {
 	@Basic(optional = false)
 	@Column(nullable = false)
 	@NonNull
-    @PositiveOrZero(message = "La quantité ne peut pas être négative")
+    @PositiveOrZero(message = "La quantité ne peut pas être négative") // doit être positive
 	private Integer quantite;
 
 }

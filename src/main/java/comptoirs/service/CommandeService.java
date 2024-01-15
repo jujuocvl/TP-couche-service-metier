@@ -2,6 +2,7 @@ package comptoirs.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.NoSuchElementException;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -106,8 +107,24 @@ public class CommandeService {
      */
     @Transactional
     public Ligne ajouterLigne(int commandeNum, int produitRef, @Positive int quantite) {
-        // TODO : implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        var commande = commandeDao.findById(commandeNum).orElseThrow();
+        var produit = produitDao.findById(produitRef).orElseThrow();
+
+        if (commande.getEnvoyeele() != null) {
+           throw new IllegalStateException("La commande a déjà été envoyée"); 
+        }
+
+        int qttStock = produit.getUnitesEnStock();
+        int qttComm = produit.getUnitesCommandees() + quantite;
+
+        if(qttStock < qttComm)
+            throw new IllegalStateException("Il n'y a pas assez de stock"); 
+    
+        Ligne nouvelleL = new Ligne(commande, produit, quantite);
+        nouvelleL.getProduit().setUnitesCommandees(nouvelleL.getProduit().getUnitesCommandees() + quantite);
+        ligneDao.save(nouvelleL);
+        
+        return nouvelleL;
     }
 
     /**
@@ -130,7 +147,19 @@ public class CommandeService {
      */
     @Transactional
     public Commande enregistreExpedition(int commandeNum) {
-        // TODO : implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        var commande = commandeDao.findById(commandeNum).orElseThrow();
+
+        if (commande.getEnvoyeele() != null) {
+            throw new IllegalStateException("La commande a déjà été envoyée");
+        }
+        commande.setEnvoyeele(LocalDate.now());
+
+        for(Ligne ligne: commande.getLignes()){
+            ligne.getProduit().setUnitesEnStock(ligne.getProduit().getUnitesEnStock()-ligne.getQuantite());
+            ligne.getProduit().setUnitesCommandees(ligne.getProduit().getUnitesCommandees()-ligne.getQuantite());
+        }
+
+
+        return commande;
     }
 }
